@@ -1,4 +1,5 @@
 import { metrics } from './metrics.js';
+import { getRequestContext } from './context.js';
 
 export interface LogWriter {
   logQuery(query: string, params: unknown[]): void;
@@ -16,6 +17,10 @@ export class DrizzleMetricsLogger implements LogWriter {
     const typeMatch = query.match(/^\s*(SELECT|INSERT|UPDATE|DELETE)/i);
     const queryType = typeMatch?.[1]?.toUpperCase() ?? 'OTHER';
     
-    metrics.increment('database_query_count', 1, { type: queryType });
+    const context = getRequestContext();
+    const tags: Record<string, string> = { type: queryType };
+    if (context?.traceId) tags.traceId = context.traceId;
+    
+    metrics.increment('database_query_count', 1, tags);
   }
 }

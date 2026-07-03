@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import type { LLMProvider, LLMRequest, LLMResponse, ProviderCapabilities } from '../types.js';
 import type { ZodSchema } from 'zod';
+import { config } from '@verity/shared';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 export class OpenAIProvider implements LLMProvider {
@@ -15,7 +16,7 @@ export class OpenAIProvider implements LLMProvider {
   };
 
   constructor(apiKey?: string, model = 'gpt-4o-2024-08-06') {
-    this.client = new OpenAI({ apiKey: apiKey || process.env.OPENAI_API_KEY });
+    this.client = new OpenAI({ apiKey: apiKey || config.ai.openaiKey });
     this.model = model;
   }
 

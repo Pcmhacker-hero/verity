@@ -1,5 +1,6 @@
 import { getRequestContext } from './context.js';
 import { logger } from './logger.js';
+import { config } from '../config/index.js';
 
 export type MetricType = 'increment' | 'gauge' | 'histogram';
 
@@ -59,7 +60,7 @@ function enrichTags(tags: MetricTags = {}): MetricTags {
     requestId: tags.requestId ?? context?.requestId,
     workspaceId: tags.workspaceId ?? context?.workspaceId,
     projectId: tags.projectId ?? context?.projectId,
-    environment: process.env.NODE_ENV ?? 'development',
+    environment: config.env,
   };
 }
 

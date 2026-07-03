@@ -9,7 +9,7 @@ import { db } from '@verity/database';
 import { jobs } from '@verity/database/schema';
 import { eq, and, desc, count, sql, gte, lt } from 'drizzle-orm';
 import type { JobType, JobStatus, QueueMetrics } from '@verity/shared/types';
-import { logger, metrics } from '@verity/shared/observability';
+import { logger, metrics, monitorRegistry, thresholds } from '@verity/shared/observability';
 
 export interface QueueHealthCheck {
   queueName: JobType;
@@ -115,6 +115,40 @@ export async function checkQueueHealth(queueName: JobType): Promise<QueueHealthC
     issues,
   };
 }
+
+// Automatically register health checks for all known queues
+const QUEUE_NAMES: JobType[] = ['generation-single', 'generation-pipeline', 'verification'];
+QUEUE_NAMES.forEach(queueName => {
+  monitorRegistry.registerCheck({
+    name: `queue_${queueName}`,
+    subsystem: 'queue',
+    check: async () => {
+      const start = Date.now();
+      const health = await checkQueueHealth(queueName);
+      const latencyMs = Date.now() - start;
+      
+      if (health.waiting > thresholds.QUEUE_DEPTH_CRITICAL) {
+        monitorRegistry.emitAlert(`queue_depth_critical_${queueName}`, `Critical queue depth for ${queueName}`, 'critical', 'queue', health.waiting, thresholds.QUEUE_DEPTH_CRITICAL);
+      } else if (health.waiting > thresholds.QUEUE_DEPTH_WARNING) {
+        monitorRegistry.emitAlert(`queue_depth_high_${queueName}`, `High queue depth for ${queueName}`, 'warning', 'queue', health.waiting, thresholds.QUEUE_DEPTH_WARNING);
+      }
+
+      if (health.oldestWaitingJobAgeMs > thresholds.QUEUE_WAIT_TIME_CRITICAL_MS) {
+        monitorRegistry.emitAlert(`queue_wait_critical_${queueName}`, `Critical wait time for ${queueName}`, 'critical', 'queue', health.oldestWaitingJobAgeMs, thresholds.QUEUE_WAIT_TIME_CRITICAL_MS);
+      } else if (health.oldestWaitingJobAgeMs > thresholds.QUEUE_WAIT_TIME_WARNING_MS) {
+        monitorRegistry.emitAlert(`queue_wait_high_${queueName}`, `High wait time for ${queueName}`, 'warning', 'queue', health.oldestWaitingJobAgeMs, thresholds.QUEUE_WAIT_TIME_WARNING_MS);
+      }
+
+      return {
+        name: `queue_${queueName}`,
+        status: health.status,
+        message: health.issues.join(', '),
+        latencyMs,
+        metadata: { ...health }
+      };
+    }
+  });
+});
 
 /**
  * Performs health checks on all queues.

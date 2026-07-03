@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { getAuthContext, type AuthContext } from '@/lib/auth/session';
-import { logger, runWithContext, reportError, metrics } from '@verity/shared/observability';
+import { logger, runWithContext, reportError, metrics, withSpan, monitorRegistry, thresholds } from '@verity/shared/observability';
 
 type HandlerContext = {
   requestId: string;
@@ -55,20 +55,28 @@ export function withApiAuth<RouteContext = unknown>(handler: ApiHandler<RouteCon
       return await runWithContext(
         { requestId, userId: auth.userId, workspaceId: auth.workspaceId },
         async () => {
-          const response = await handler(request, { requestId, auth }, routeContext);
-          const durationMs = Date.now() - startedAt;
-          
-          metrics.increment('api_request_count', 1, { method: request.method, route: request.nextUrl.pathname, status: response.status });
-          metrics.histogram('api_request_duration', durationMs, { method: request.method, route: request.nextUrl.pathname });
-          
-          logger.info('api_request_completed', {
-            method: request.method,
-            path: request.nextUrl.pathname,
-            status: response.status,
-            durationMs,
+          return await withSpan('api_request', { method: request.method, route: request.nextUrl.pathname }, async () => {
+            const response = await handler(request, { requestId, auth }, routeContext);
+            const durationMs = Date.now() - startedAt;
+            
+            metrics.increment('api_request_count', 1, { method: request.method, route: request.nextUrl.pathname, status: response.status });
+            metrics.histogram('api_request_duration', durationMs, { method: request.method, route: request.nextUrl.pathname });
+            
+            if (durationMs > thresholds.API_LATENCY_CRITICAL_MS) {
+              monitorRegistry.emitAlert('api_critical_latency', 'API latency is critically high', 'critical', 'api', durationMs, thresholds.API_LATENCY_CRITICAL_MS, { route: request.nextUrl.pathname });
+            } else if (durationMs > thresholds.API_LATENCY_WARNING_MS) {
+              monitorRegistry.emitAlert('api_high_latency', 'API latency is high', 'warning', 'api', durationMs, thresholds.API_LATENCY_WARNING_MS, { route: request.nextUrl.pathname });
+            }
+            
+            logger.info('api_request_completed', {
+              method: request.method,
+              path: request.nextUrl.pathname,
+              status: response.status,
+              durationMs,
+            });
+            response.headers.set('x-request-id', requestId);
+            return response;
           });
-          response.headers.set('x-request-id', requestId);
-          return response;
         }
       );
     } catch (error) {

@@ -14,13 +14,14 @@
 
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { DrizzleMetricsLogger } from '@verity/shared/observability';
+import { sql } from 'drizzle-orm';
+import { DrizzleMetricsLogger, monitorRegistry, thresholds, config } from '@verity/shared';
 import * as schema from './schema/index.js';
 
 type DB = ReturnType<typeof drizzle<typeof schema>>;
 
 function createClient(): DB {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = config.database.url;
 
   if (!connectionString) {
     throw new Error('DATABASE_URL environment variable is required');
@@ -38,6 +39,28 @@ let _db: DB | undefined;
 function getInstance(): DB {
   if (!_db) {
     _db = createClient();
+    
+    // Register health check on first init
+    monitorRegistry.registerCheck({
+      name: 'database',
+      subsystem: 'database',
+      check: async () => {
+        const start = Date.now();
+        await _db!.execute(sql`SELECT 1`);
+        const latencyMs = Date.now() - start;
+        
+        let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+        if (latencyMs > thresholds.DB_LATENCY_CRITICAL_MS) {
+          status = 'unhealthy';
+          monitorRegistry.emitAlert('db_critical_latency', 'Database latency is critically high', 'critical', 'database', latencyMs, thresholds.DB_LATENCY_CRITICAL_MS);
+        } else if (latencyMs > thresholds.DB_LATENCY_WARNING_MS) {
+          status = 'degraded';
+          monitorRegistry.emitAlert('db_high_latency', 'Database latency is high', 'warning', 'database', latencyMs, thresholds.DB_LATENCY_WARNING_MS);
+        }
+        
+        return { name: 'database', status, latencyMs };
+      }
+    });
   }
   return _db;
 }

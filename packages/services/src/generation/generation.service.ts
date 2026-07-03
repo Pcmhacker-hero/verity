@@ -9,7 +9,7 @@
  */
 
 import { SpecService } from '../spec/spec.service.js';
-import { logger, reportError, metrics } from '@verity/shared/observability';
+import { logger, reportError, metrics, withSpan, monitorRegistry, thresholds, config } from '@verity/shared';
 import { 
   GenerationEngine, 
   MockProvider, 
@@ -43,7 +43,7 @@ export class GenerationService {
     this.specService = new SpecService();
   }
 
-  private getProvider(name = process.env.LLM_PROVIDER || 'mock'): LLMProvider {
+  private getProvider(name = config.ai.provider): LLMProvider {
     switch (name) {
       case 'openai':
         return new OpenAIProvider();
@@ -82,65 +82,74 @@ export class GenerationService {
     ideaText: string,
     options?: GenerationOptions
   ) {
-    const provider = this.getProvider(options?.providerName);
-    const engine = new GenerationEngine(provider);
+    return await withSpan('generate_artifact', { projectId, artifactType }, async () => {
+      const provider = this.getProvider(options?.providerName);
+      const engine = new GenerationEngine(provider);
 
-    // 1. Resolve Dependencies
-    const dependencies = ArtifactDependencyManager.getDependencies(artifactType);
-    const contextArtifacts: Record<string, any> = {};
+      // 1. Resolve Dependencies
+      const dependencies = ArtifactDependencyManager.getDependencies(artifactType);
+      const contextArtifacts: Record<string, any> = {};
 
-    if (dependencies.length > 0) {
-      // We need existing context
-      try {
-        for (const dep of dependencies) {
-          const res = await this.specService.getArtifact(projectId, dep);
-          const data = res[dep === 'repo_structure' ? 'repoStructure' : dep];
-          if (!data) {
-            throw new Error(`Dependency missing: ${dep} is empty in the current SpecVersion.`);
+      if (dependencies.length > 0) {
+        // We need existing context
+        try {
+          for (const dep of dependencies) {
+            const res = await this.specService.getArtifact(projectId, dep);
+            const data = res[dep === 'repo_structure' ? 'repoStructure' : dep];
+            if (!data) {
+              throw new Error(`Dependency missing: ${dep} is empty in the current SpecVersion.`);
+            }
+            contextArtifacts[dep] = data;
           }
-          contextArtifacts[dep] = data;
+        } catch (err: any) {
+          throw new VerityError(
+            'PRECONDITION_FAILED',
+            `Cannot generate ${artifactType} because required context is missing: ${err.message}`,
+            400
+          );
         }
-      } catch (err: any) {
-        throw new VerityError(
-          'PRECONDITION_FAILED',
-          `Cannot generate ${artifactType} because required context is missing: ${err.message}`,
-          400
-        );
       }
-    }
 
-    // 2. Build Prompts
-    const systemPrompt = PromptBuilder.getSystemPrompt(artifactType);
-    const userPrompt = PromptBuilder.getUserPrompt(artifactType, ideaText, contextArtifacts);
-    const schema = this.getSchemaForArtifact(artifactType);
+      // 2. Build Prompts
+      const systemPrompt = PromptBuilder.getSystemPrompt(artifactType);
+      const userPrompt = PromptBuilder.getUserPrompt(artifactType, ideaText, contextArtifacts);
+      const schema = this.getSchemaForArtifact(artifactType);
 
-    // 3. Generate Validated Output via AI Engine
-    try {
-      const response = await engine.generateValidatedOutput(systemPrompt, userPrompt, schema as any);
+      // 3. Generate Validated Output via AI Engine
+      try {
+        const response = await engine.generateValidatedOutput(systemPrompt, userPrompt, schema as any);
 
-      // 4. Persist the generated artifact via SpecService (Creates immutable SpecVersion)
-      const newVersion = await this.specService.updateArtifact(projectId, artifactType, response.data, 'generation');
+        // 4. Persist the generated artifact via SpecService (Creates immutable SpecVersion)
+        const newVersion = await this.specService.updateArtifact(projectId, artifactType, response.data, 'generation');
 
-      const tags = { projectId, artifactType, model: response.model };
-      metrics.histogram('ai_generation_duration', response.duration_ms, tags);
-      if (response.usage?.inputTokens) metrics.increment('llm_input_tokens', response.usage.inputTokens, tags);
-      if (response.usage?.outputTokens) metrics.increment('llm_output_tokens', response.usage.outputTokens, tags);
+        const tags = { projectId, artifactType, model: response.model };
+        metrics.histogram('ai_generation_duration', response.duration_ms, tags);
+        
+        if (response.duration_ms > thresholds.AI_GENERATION_CRITICAL_MS) {
+          monitorRegistry.emitAlert('ai_generation_critical_latency', `AI generation for ${artifactType} took critically long`, 'critical', 'ai_generation', response.duration_ms, thresholds.AI_GENERATION_CRITICAL_MS, tags);
+        } else if (response.duration_ms > thresholds.AI_GENERATION_WARNING_MS) {
+          monitorRegistry.emitAlert('ai_generation_high_latency', `AI generation for ${artifactType} took long`, 'warning', 'ai_generation', response.duration_ms, thresholds.AI_GENERATION_WARNING_MS, tags);
+        }
 
-      return {
-        specVersionId: newVersion!.id,
-        versionNumber: newVersion!.versionNumber,
-        usage: response.usage,
-        durationMs: response.duration_ms,
-        model: response.model
-      };
-    } catch (error) {
-      reportError(error, {
-        service: 'verity-generation-service',
-        tags: { projectId, artifactType },
-        severity: 'error'
-      });
-      throw error;
-    }
+        if (response.usage?.inputTokens) metrics.increment('llm_input_tokens', response.usage.inputTokens, tags);
+        if (response.usage?.outputTokens) metrics.increment('llm_output_tokens', response.usage.outputTokens, tags);
+
+        return {
+          specVersionId: newVersion!.id,
+          versionNumber: newVersion!.versionNumber,
+          usage: response.usage,
+          durationMs: response.duration_ms,
+          model: response.model
+        };
+      } catch (error) {
+        reportError(error, {
+          service: 'verity-generation-service',
+          tags: { projectId, artifactType },
+          severity: 'error'
+        });
+        throw error;
+      }
+    });
   }
 
   /**

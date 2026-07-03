@@ -25,7 +25,7 @@ import type {
   QueueEvent,
   QueueEventType,
 } from '@verity/shared/types';
-import { logger, runWithContext, reportError } from '@verity/shared/observability';
+import { logger, runWithContext, reportError, withSpan } from '@verity/shared/observability';
 
 export interface WorkerOptions {
   workerId: string;
@@ -139,27 +139,29 @@ export abstract class BaseWorker extends EventEmitter {
           workspaceId: job.workspaceId
         },
         async () => {
-          this.emitJobEvent('job_started', job);
-          logger.info('job_started', { attempt: job.attempt, queueName: this.queueName });
+          await withSpan('queue_job_execution', { queue: this.queueName, jobId: job.id, attempt: job.attempt }, async () => {
+            this.emitJobEvent('job_started', job);
+            logger.info('job_started', { attempt: job.attempt, queueName: this.queueName });
 
-          await this.updateJobProgress(job.id, {
-            currentStep: 'Starting...',
-            stepsCompleted: 0,
-            stepsTotal: job.stepsTotal ?? 1,
-            completedSteps: [],
+            await this.updateJobProgress(job.id, {
+              currentStep: 'Starting...',
+              stepsCompleted: 0,
+              stepsTotal: job.stepsTotal ?? 1,
+              completedSteps: [],
+            });
+
+            const result = await this.processJob(job);
+
+            if (controller.signal.aborted) {
+              await this.handleCancellation(job);
+              logger.warn('job_cancelled', { reason: 'Aborted during processing' });
+              return;
+            }
+
+            await this.completeJob(job, result);
+            this.emitJobEvent('job_completed', job, { result });
+            logger.info('job_completed', { result });
           });
-
-          const result = await this.processJob(job);
-
-          if (controller.signal.aborted) {
-            await this.handleCancellation(job);
-            logger.warn('job_cancelled', { reason: 'Aborted during processing' });
-            return;
-          }
-
-          await this.completeJob(job, result);
-          this.emitJobEvent('job_completed', job, { result });
-          logger.info('job_completed', { result });
         }
       );
     } catch (error) {

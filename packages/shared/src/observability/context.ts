@@ -6,6 +6,9 @@ export interface RequestContextData {
   userId?: string;
   workspaceId?: string;
   projectId?: string;
+  traceId?: string;
+  spanId?: string;
+  parentSpanId?: string;
   [key: string]: unknown;
 }
 

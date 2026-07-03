@@ -9,18 +9,16 @@
  */
 
 import { createQueueClient, QUEUE_NAMES, QUEUE_CONFIG } from '@verity/queue';
-import { envSchema } from '@verity/shared/validation';
 import { GenerationService, VerificationService } from '@verity/services';
 import { logger } from '@verity/shared/observability';
+import { config } from '@verity/shared';
 
 async function main() {
   logger.info('Starting Verity Worker...');
 
-  // Validate env
-  const env = envSchema.parse(process.env);
-
+  // env schema is already validated by central config import
   // Initialize queue client (pg-boss)
-  const boss = await createQueueClient(env.DATABASE_URL);
+  const boss = await createQueueClient(config.database.url);
   
   // Initialize services
   const generationService = new GenerationService();

@@ -3,12 +3,13 @@ import { authAccounts, authSessions, authUsers, authVerifications } from '@verit
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { ensureWorkspaceForAuthUser } from './provisioning';
+import { config } from '@verity/shared';
 
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = config.env === 'production';
 
 export const auth = betterAuth({
-  secret: process.env.BETTER_AUTH_SECRET ?? process.env.SESSION_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL,
+  secret: config.auth.secret,
+  baseURL: config.auth.url,
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema: {
@@ -20,12 +21,12 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: process.env.ENABLE_EMAIL_VERIFICATION === 'true',
+    requireEmailVerification: config.auth.requireEmailVerification,
   },
   socialProviders: {
     github: {
-      clientId: process.env.GITHUB_CLIENT_ID ?? '',
-      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? '',
+      clientId: config.auth.github.clientId,
+      clientSecret: config.auth.github.clientSecret,
       // User authentication only. Repository connection OAuth is a separate
       // Step 4+ flow because it needs project-scoped state and token indirection.
       scope: ['read:user', 'user:email'],

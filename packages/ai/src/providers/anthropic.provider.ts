@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { LLMProvider, LLMRequest, LLMResponse, ProviderCapabilities } from '../types.js';
 import type { ZodSchema } from 'zod';
+import { config } from '@verity/shared';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 export class AnthropicProvider implements LLMProvider {
@@ -15,7 +16,7 @@ export class AnthropicProvider implements LLMProvider {
   };
 
   constructor(apiKey?: string, model = 'claude-3-7-sonnet-20250219') {
-    this.client = new Anthropic({ apiKey: apiKey || process.env.ANTHROPIC_API_KEY });
+    this.client = new Anthropic({ apiKey: apiKey || config.ai.anthropicKey });
     this.model = model;
   }
 

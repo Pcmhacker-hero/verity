@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import type { LLMProvider, LLMRequest, LLMResponse, ProviderCapabilities } from '../types.js';
 import type { ZodSchema } from 'zod';
+import { config } from '@verity/shared';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 export class GeminiProvider implements LLMProvider {
@@ -15,7 +16,7 @@ export class GeminiProvider implements LLMProvider {
   };
 
   constructor(apiKey?: string, model = 'gemini-2.5-pro') {
-    this.client = new GoogleGenAI({ apiKey: apiKey || process.env.GEMINI_API_KEY });
+    this.client = new GoogleGenAI({ apiKey: apiKey || config.ai.geminiKey });
     this.model = model;
   }
 

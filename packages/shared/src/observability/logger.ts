@@ -1,4 +1,5 @@
 import { getRequestContext } from './context.js';
+import { config } from '../config/index.js';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
@@ -53,7 +54,7 @@ function write(level: LogLevel, message: string, meta: Record<string, unknown> =
 
   switch (level) {
     case 'debug':
-      if (process.env.NODE_ENV !== 'production') console.debug(output);
+      if (config.env !== 'production') console.debug(output);
       break;
     case 'info':
       console.info(output);

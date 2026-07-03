@@ -1,5 +1,6 @@
 import { getRequestContext } from './context.js';
 import { logger } from './logger.js';
+import { config } from '../config/index.js';
 
 export type ErrorSeverity = 'fatal' | 'error' | 'warning' | 'info';
 
@@ -22,8 +23,11 @@ export interface ErrorReportingProvider {
 
 const ERROR_REPORTED_SYMBOL = Symbol.for('verity.error.reported');
 
-function isReported(error: Error): boolean {
-  return (error as any)[ERROR_REPORTED_SYMBOL] === true;
+function isReported(error: unknown): boolean {
+  if (typeof error === 'object' && error !== null) {
+    return (error as Record<symbol, unknown>)[ERROR_REPORTED_SYMBOL] === true;
+  }
+  return false;
 }
 
 function markReported(error: Error): void {
@@ -78,8 +82,8 @@ export function reportError(error: unknown, additionalMeta: Partial<ErrorReportM
     userId: additionalMeta.userId ?? reqContext?.userId,
     workspaceId: additionalMeta.workspaceId ?? reqContext?.workspaceId,
     projectId: additionalMeta.projectId ?? reqContext?.projectId,
-    service: additionalMeta.service ?? process.env.SERVICE_NAME ?? 'verity',
-    environment: additionalMeta.environment ?? process.env.NODE_ENV ?? 'development',
+    service: additionalMeta.service ?? config.serviceName,
+    environment: additionalMeta.environment ?? config.env,
     severity: additionalMeta.severity ?? 'error',
     tags: additionalMeta.tags ?? {},
     context: additionalMeta.context ?? {},
