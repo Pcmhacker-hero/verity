@@ -5,5 +5,5 @@
  * Postgres 16 with Drizzle ORM for type-safe queries.
  */
 
-export { db } from './client.js';
+export { db, closeDB } from './client.js';
 export * from './schema/index.js';

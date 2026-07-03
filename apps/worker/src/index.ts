@@ -12,6 +12,7 @@ import { createQueueClient, QUEUE_NAMES, QUEUE_CONFIG } from '@verity/queue';
 import { GenerationService, VerificationService } from '@verity/services';
 import { logger } from '@verity/shared/observability';
 import { config } from '@verity/shared';
+import { closeDB } from '@verity/database';
 
 async function main() {
   logger.info('Starting Verity Worker...');
@@ -28,6 +29,7 @@ async function main() {
   process.on('SIGTERM', async () => {
     logger.info('SIGTERM received, shutting down worker gracefully...');
     await boss.stop();
+    await closeDB();
     process.exit(0);
   });
   

@@ -20,6 +20,8 @@ import * as schema from './schema/index.js';
 
 type DB = ReturnType<typeof drizzle<typeof schema>>;
 
+let _client: ReturnType<typeof postgres> | undefined;
+
 function createClient(): DB {
   const connectionString = config.database.url;
 
@@ -27,11 +29,11 @@ function createClient(): DB {
     throw new Error('DATABASE_URL environment variable is required');
   }
 
-  const client = postgres(connectionString, {
+  _client = postgres(connectionString, {
     max: 10, // Doc 17 §6.2: 10 connections per process
   });
 
-  return drizzle(client, { schema, logger: new DrizzleMetricsLogger() });
+  return drizzle(_client, { schema, logger: new DrizzleMetricsLogger() });
 }
 
 let _db: DB | undefined;
@@ -75,4 +77,10 @@ export const db: DB = new Proxy({} as DB, {
     return Reflect.get(getInstance(), prop, receiver);
   },
 });
+
+export async function closeDB() {
+  if (_client) {
+    await _client.end();
+  }
+}
 

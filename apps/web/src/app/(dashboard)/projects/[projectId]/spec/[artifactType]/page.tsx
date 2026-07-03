@@ -3,7 +3,12 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { ArtifactManager } from "@/components/spec/artifact-manager"
+import dynamic from "next/dynamic"
+
+const ArtifactManager = dynamic(
+  () => import("@/components/spec/artifact-manager").then((mod) => mod.ArtifactManager),
+  { loading: () => <div className="h-[600px] animate-pulse rounded-lg bg-muted" /> }
+)
 
 export default async function ArtifactPage({
   params,

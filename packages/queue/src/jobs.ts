@@ -20,21 +20,21 @@ export const QUEUE_NAMES = {
 export const QUEUE_CONFIG = {
   [QUEUE_NAMES.GENERATION_SINGLE]: {
     priority: 3, // Highest
-    concurrency: 3,
+    concurrency: 5,
     retryLimit: 1,
     retryDelay: 4, // seconds
     expireInMinutes: 5,
   },
   [QUEUE_NAMES.GENERATION_PIPELINE]: {
     priority: 2,
-    concurrency: 2,
+    concurrency: 4,
     retryLimit: 1,
     retryDelay: 4,
     expireInMinutes: 15,
   },
   [QUEUE_NAMES.VERIFICATION]: {
     priority: 1,
-    concurrency: 3,
+    concurrency: 5,
     retryLimit: 1,
     retryDelay: 4,
     expireInMinutes: 15,
