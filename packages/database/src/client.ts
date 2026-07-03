@@ -14,6 +14,7 @@
 
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { DrizzleMetricsLogger } from '@verity/shared/observability';
 import * as schema from './schema/index.js';
 
 type DB = ReturnType<typeof drizzle<typeof schema>>;
@@ -29,7 +30,7 @@ function createClient(): DB {
     max: 10, // Doc 17 §6.2: 10 connections per process
   });
 
-  return drizzle(client, { schema });
+  return drizzle(client, { schema, logger: new DrizzleMetricsLogger() });
 }
 
 let _db: DB | undefined;

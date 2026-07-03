@@ -9,7 +9,7 @@
  */
 
 import { SpecService } from '../spec/spec.service.js';
-import { logger, reportError } from '@verity/shared/observability';
+import { logger, reportError, metrics } from '@verity/shared/observability';
 import { 
   GenerationEngine, 
   MockProvider, 
@@ -120,6 +120,11 @@ export class GenerationService {
 
       // 4. Persist the generated artifact via SpecService (Creates immutable SpecVersion)
       const newVersion = await this.specService.updateArtifact(projectId, artifactType, response.data, 'generation');
+
+      const tags = { projectId, artifactType, model: response.model };
+      metrics.histogram('ai_generation_duration', response.duration_ms, tags);
+      if (response.usage?.inputTokens) metrics.increment('llm_input_tokens', response.usage.inputTokens, tags);
+      if (response.usage?.outputTokens) metrics.increment('llm_output_tokens', response.usage.outputTokens, tags);
 
       return {
         specVersionId: newVersion!.id,

@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { getAuthContext, type AuthContext } from '@/lib/auth/session';
-import { logger, runWithContext, reportError } from '@verity/shared/observability';
+import { logger, runWithContext, reportError, metrics } from '@verity/shared/observability';
 
 type HandlerContext = {
   requestId: string;
@@ -56,11 +56,16 @@ export function withApiAuth<RouteContext = unknown>(handler: ApiHandler<RouteCon
         { requestId, userId: auth.userId, workspaceId: auth.workspaceId },
         async () => {
           const response = await handler(request, { requestId, auth }, routeContext);
+          const durationMs = Date.now() - startedAt;
+          
+          metrics.increment('api_request_count', 1, { method: request.method, route: request.nextUrl.pathname, status: response.status });
+          metrics.histogram('api_request_duration', durationMs, { method: request.method, route: request.nextUrl.pathname });
+          
           logger.info('api_request_completed', {
             method: request.method,
             path: request.nextUrl.pathname,
             status: response.status,
-            durationMs: Date.now() - startedAt,
+            durationMs,
           });
           response.headers.set('x-request-id', requestId);
           return response;
@@ -84,12 +89,17 @@ export function withApiAuth<RouteContext = unknown>(handler: ApiHandler<RouteCon
       }
 
       return runWithContext({ requestId }, () => {
+        const durationMs = Date.now() - startedAt;
+        
+        metrics.increment('api_request_count', 1, { method: request.method, route: request.nextUrl.pathname, status: appError.statusCode });
+        metrics.histogram('api_request_duration', durationMs, { method: request.method, route: request.nextUrl.pathname });
+
         logger.error('api_request_failed', {
           method: request.method,
           path: request.nextUrl.pathname,
           status: appError.statusCode,
           code: appError.code,
-          durationMs: Date.now() - startedAt,
+          durationMs,
           error: appError,
         });
 

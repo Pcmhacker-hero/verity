@@ -9,7 +9,7 @@ import { db } from '@verity/database';
 import { jobs } from '@verity/database/schema';
 import { eq, and, desc, count, sql, gte, lt } from 'drizzle-orm';
 import type { JobType, JobStatus, QueueMetrics } from '@verity/shared/types';
-import { logger } from '@verity/shared/observability';
+import { logger, metrics } from '@verity/shared/observability';
 
 export interface QueueHealthCheck {
   queueName: JobType;
@@ -261,6 +261,24 @@ export function logJobMetrics(job: {
   outputTokens?: number;
   estimatedCost?: number;
 }): void {
+  const tags = { queue: job.type, status: job.status };
+  
+  metrics.histogram('queue_processing_time', job.durationMs, tags);
+  
+  if (job.status === 'failed') {
+    metrics.increment('queue_failure_rate', 1, tags);
+  } else if (job.status === 'complete') {
+    metrics.increment('queue_success_rate', 1, tags);
+  }
+
+  if (job.attempt > 1) {
+    metrics.increment('queue_retry_count', 1, { ...tags, attempt: job.attempt });
+  }
+
+  if (job.inputTokens) metrics.increment('llm_input_tokens', job.inputTokens, tags);
+  if (job.outputTokens) metrics.increment('llm_output_tokens', job.outputTokens, tags);
+  if (job.estimatedCost) metrics.increment('llm_estimated_cost', job.estimatedCost, tags);
+
   logger.info('job_metrics', {
     event: 'job_metrics',
     jobId: job.id,
