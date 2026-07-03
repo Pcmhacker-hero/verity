@@ -18,7 +18,7 @@ export const GET = withApiAuth<RouteContext>(async (req: NextRequest, { auth }, 
   const versionNumber = versionParam ? parseInt(versionParam, 10) : undefined;
 
   const specService = new SpecService();
-  const result = await specService.getArtifact(projectId, 'prd', versionNumber);
+  const result = await specService.getArtifact(auth.workspaceId, projectId, 'prd', versionNumber);
 
   return NextResponse.json(result);
 });
@@ -32,7 +32,7 @@ export const PUT = withApiAuth<RouteContext>(async (req: NextRequest, { auth }, 
   const validated = prdArtifactSchema.parse(body);
 
   const specService = new SpecService();
-  const result = await specService.updateArtifact(projectId, 'prd', validated);
+  const result = await specService.updateArtifact(auth.workspaceId, projectId, 'prd', validated);
 
   return NextResponse.json({
     specVersionId: result!.id,

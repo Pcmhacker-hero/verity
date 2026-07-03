@@ -225,3 +225,22 @@ export const tasks = pgTable(
   },
   (t) => [index('idx_task_artifact').on(t.taskArtifactId), index('idx_task_roadmap_phase').on(t.roadmapPhaseId)],
 );
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Spec Version Diffs — Doc 18 §9.3
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const specVersionDiffs = pgTable(
+  'spec_version_diff',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    fromVersionId: uuid('from_version_id')
+      .notNull()
+      .references(() => specVersions.id, { onDelete: 'cascade' }),
+    toVersionId: uuid('to_version_id')
+      .notNull()
+      .references(() => specVersions.id, { onDelete: 'cascade' }),
+    diff: jsonb('diff').notNull(),
+  },
+  (t) => [unique().on(t.fromVersionId, t.toVersionId)],
+);

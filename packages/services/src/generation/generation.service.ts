@@ -77,12 +77,13 @@ export class GenerationService {
    * of its required upstream dependencies.
    */
   async generateArtifact(
+    workspaceId: string,
     projectId: string, 
     artifactType: typeof ARTIFACT_TYPES[number], 
     ideaText: string,
     options?: GenerationOptions
   ) {
-    return await withSpan('generate_artifact', { projectId, artifactType }, async () => {
+    return await withSpan('generate_artifact', { workspaceId, projectId, artifactType }, async () => {
       const provider = this.getProvider(options?.providerName);
       const engine = new GenerationEngine(provider);
 
@@ -94,7 +95,7 @@ export class GenerationService {
         // We need existing context
         try {
           for (const dep of dependencies) {
-            const res = await this.specService.getArtifact(projectId, dep);
+            const res = await this.specService.getArtifact(workspaceId, projectId, dep);
             const data = res[dep === 'repo_structure' ? 'repoStructure' : dep];
             if (!data) {
               throw new Error(`Dependency missing: ${dep} is empty in the current SpecVersion.`);
@@ -120,7 +121,7 @@ export class GenerationService {
         const response = await engine.generateValidatedOutput(systemPrompt, userPrompt, schema as any);
 
         // 4. Persist the generated artifact via SpecService (Creates immutable SpecVersion)
-        const newVersion = await this.specService.updateArtifact(projectId, artifactType, response.data, 'generation');
+        const newVersion = await this.specService.updateArtifact(workspaceId, projectId, artifactType, response.data, 'generation');
 
         const tags = { projectId, artifactType, model: response.model };
         metrics.histogram('ai_generation_duration', response.duration_ms, tags);
@@ -156,12 +157,12 @@ export class GenerationService {
    * Orchestrates the 7-stage spec generation pipeline.
    * This logic can be wrapped within a background queue job (Doc 11 §4).
    */
-  async generatePipeline(projectId: string, ideaText: string, options?: GenerationOptions) {
+  async generatePipeline(workspaceId: string, projectId: string, ideaText: string, options?: GenerationOptions) {
     const results = [];
     for (const artifactType of ARTIFACT_TYPES) {
       logger.info(`Starting generation of ${artifactType} for project ${projectId}...`);
       
-      const result = await this.generateArtifact(projectId, artifactType, ideaText, options);
+      const result = await this.generateArtifact(workspaceId, projectId, artifactType, ideaText, options);
       results.push({ artifactType, ...result });
 
       logger.info(`Completed ${artifactType} in ${result.durationMs}ms`);

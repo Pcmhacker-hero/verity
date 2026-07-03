@@ -88,7 +88,7 @@ export class GenerationJobProcessor extends BaseWorker {
   }
 
   private async processSingleArtifact(jobId: string, payload: GenerationJobData): Promise<void> {
-    const { projectId, artifactType, ideaText, specVersionId } = payload;
+    const { workspaceId, projectId, artifactType, ideaText, specVersionId } = payload;
 
     if (!artifactType) {
       throw new VerityError('VALIDATION_ERROR', 'artifactType required for single artifact generation', 400);
@@ -105,7 +105,7 @@ export class GenerationJobProcessor extends BaseWorker {
     });
 
     if (this.generationService) {
-      const result = await this.generationService.generateArtifact(projectId, artifactType, ideaText);
+      const result = await this.generationService.generateArtifact(workspaceId, projectId, artifactType, ideaText);
       const artifactName = artifactType || 'unknown';
       await this.updateProgress(jobId, {
         currentStep: `${artifactName} generated successfully`,
@@ -140,7 +140,7 @@ export class GenerationJobProcessor extends BaseWorker {
   }
 
   private async processPipeline(jobId: string, payload: GenerationJobData): Promise<void> {
-    const { projectId, ideaText } = payload;
+    const { workspaceId, projectId, ideaText } = payload;
 
     if (!ideaText) {
       throw new VerityError('VALIDATION_ERROR', 'ideaText required for pipeline generation', 400);
@@ -166,7 +166,7 @@ export class GenerationJobProcessor extends BaseWorker {
       });
 
       if (this.generationService) {
-        const result = await this.generationService.generateArtifact(projectId, stage, ideaText);
+        const result = await this.generationService.generateArtifact(workspaceId, projectId, stage, ideaText);
         results.push({
           artifactType: stage,
           specVersionId: result.specVersionId,

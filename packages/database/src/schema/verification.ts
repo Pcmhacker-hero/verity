@@ -6,7 +6,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { pgTable, text, timestamp, uuid, integer, index, check } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, integer, index, check, jsonb } from 'drizzle-orm/pg-core';
 import { projects, specVersions } from './core.js';
 import {
   verificationRunStatusEnum,
@@ -34,6 +34,8 @@ export const verificationRuns = pgTable(
     status: verificationRunStatusEnum('status').notNull().default('queued'),
     /** Exact repo state checked, for reproducibility */
     commitSha: text('commit_sha'),
+    /** Document 18 §8.1: track file hashes for incremental verification */
+    analyzedFileHashes: jsonb('analyzed_file_hashes'),
     triggeredAt: timestamp('triggered_at', { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },

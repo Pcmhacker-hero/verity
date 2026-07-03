@@ -40,28 +40,37 @@ export class SpecRepository {
   /**
    * Retrieves the latest SpecVersion for a project.
    */
-  async getLatestSpecVersion(projectId: string) {
+  async getLatestSpecVersion(workspaceId: string, projectId: string) {
     const versions = await db
-      .select()
+      .select({ specVersion: specVersions })
       .from(specVersions)
-      .where(eq(specVersions.projectId, projectId))
+      .innerJoin(projects, eq(projects.id, specVersions.projectId))
+      .where(and(
+        eq(specVersions.projectId, projectId),
+        eq(projects.workspaceId, workspaceId)
+      ))
       .orderBy(desc(specVersions.versionNumber))
       .limit(1);
 
-    return versions.length > 0 ? versions[0] : null;
+    return versions.length > 0 ? versions[0]?.specVersion ?? null : null;
   }
 
   /**
    * Retrieves a specific SpecVersion by project and version number.
    */
-  async getSpecVersion(projectId: string, versionNumber: number) {
+  async getSpecVersion(workspaceId: string, projectId: string, versionNumber: number) {
     const versions = await db
-      .select()
+      .select({ specVersion: specVersions })
       .from(specVersions)
-      .where(and(eq(specVersions.projectId, projectId), eq(specVersions.versionNumber, versionNumber)))
+      .innerJoin(projects, eq(projects.id, specVersions.projectId))
+      .where(and(
+        eq(specVersions.projectId, projectId),
+        eq(specVersions.versionNumber, versionNumber),
+        eq(projects.workspaceId, workspaceId)
+      ))
       .limit(1);
 
-    return versions.length > 0 ? versions[0] : null;
+    return versions.length > 0 ? versions[0]?.specVersion ?? null : null;
   }
 
   /**
@@ -69,18 +78,21 @@ export class SpecRepository {
    */
   async createSpecVersion(
     tx: Tx,
+    workspaceId: string,
     projectId: string,
     source: SpecVersionSource,
     previousVersionId: string | null,
     changeSummary: string | null
   ) {
     // Lock the project row to prevent race conditions during version generation
-    await tx
+    const proj = await tx
       .select({ id: projects.id })
       .from(projects)
-      .where(eq(projects.id, projectId))
+      .where(and(eq(projects.id, projectId), eq(projects.workspaceId, workspaceId)))
       .for('update')
       .limit(1);
+
+    if (proj.length === 0) throw new Error("Project not found in workspace");
 
     // Get current max version number for this project in the transaction
     const latest = await tx

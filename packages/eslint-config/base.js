@@ -35,6 +35,10 @@ export default tseslint.config(
               name: 'child_process',
               message: 'child_process is banned (Doc 1 Principle 5). Verity never executes code.',
             },
+            {
+              name: 'vm',
+              message: 'vm is banned (Doc 16 §17.1). Verity never executes code.',
+            }
           ],
         },
       ],

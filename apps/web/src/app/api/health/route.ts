@@ -7,6 +7,9 @@ export async function GET() {
   try {
     return NextResponse.json({
       status: 'healthy',
+      version: process.env.RAILWAY_GIT_COMMIT_SHA || 'unknown',
+      environment: process.env.NODE_ENV || 'development',
+      uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       type: 'liveness',
       service: 'verity-web'

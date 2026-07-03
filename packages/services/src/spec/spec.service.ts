@@ -24,7 +24,7 @@ export class SpecService {
    * Generates a structural change summary, copies unchanged artifacts,
    * and inserts the new edited artifact.
    */
-  async updateArtifact(projectId: string, artifactType: string, payload: any, source: SpecVersionSource = 'edit') {
+  async updateArtifact(workspaceId: string, projectId: string, artifactType: string, payload: any, source: SpecVersionSource = 'edit') {
     if (!ARTIFACT_TYPES.includes(artifactType as any)) {
       throw new VerityError(
         'VALIDATION_ERROR',
@@ -33,7 +33,7 @@ export class SpecService {
       );
     }
 
-    const latestVersion = await this.repo.getLatestSpecVersion(projectId);
+    const latestVersion = await this.repo.getLatestSpecVersion(workspaceId, projectId);
 
     // Compute diff against old artifact
     let oldArtifact = null;
@@ -50,6 +50,7 @@ export class SpecService {
     const newVersion = await db.transaction(async (tx) => {
       const version = await this.repo.createSpecVersion(
         tx,
+        workspaceId,
         projectId,
         source,
         latestVersion ? latestVersion.id : null,
@@ -76,13 +77,13 @@ export class SpecService {
   /**
    * Retrieves an artifact by project and version (defaults to latest).
    */
-  async getArtifact(projectId: string, artifactType: string, versionNumber?: number) {
+  async getArtifact(workspaceId: string, projectId: string, artifactType: string, versionNumber?: number) {
     let version = null;
     
     if (versionNumber) {
-      version = await this.repo.getSpecVersion(projectId, versionNumber);
+      version = await this.repo.getSpecVersion(workspaceId, projectId, versionNumber);
     } else {
-      version = await this.repo.getLatestSpecVersion(projectId);
+      version = await this.repo.getLatestSpecVersion(workspaceId, projectId);
     }
 
     if (!version) {
@@ -112,10 +113,10 @@ export class SpecService {
   /**
    * Generates a markdown representation of the tasks artifact for a spec version.
    */
-  async getTasksExport(projectId: string, versionNumber?: number): Promise<string> {
+  async getTasksExport(workspaceId: string, projectId: string, versionNumber?: number): Promise<string> {
     const version = versionNumber 
-      ? await this.repo.getSpecVersion(projectId, versionNumber)
-      : await this.repo.getLatestSpecVersion(projectId);
+      ? await this.repo.getSpecVersion(workspaceId, projectId, versionNumber)
+      : await this.repo.getLatestSpecVersion(workspaceId, projectId);
 
     if (!version) {
       throw new VerityError(

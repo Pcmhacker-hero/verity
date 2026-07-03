@@ -17,7 +17,7 @@ export const GET = withApiAuth<RouteContext>(async (req: NextRequest, { auth }, 
   const versionNumber = versionParam ? parseInt(versionParam, 10) : undefined;
 
   const specService = new SpecService();
-  const result = await specService.getArtifact(projectId, 'tasks', versionNumber);
+  const result = await specService.getArtifact(auth.workspaceId, projectId, 'tasks', versionNumber);
 
   return NextResponse.json(result);
 });

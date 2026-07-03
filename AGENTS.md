@@ -113,3 +113,14 @@ Documentation quality checklist
 The goal is to produce documentation that another senior engineer could directly implement without requiring significant architectural clarification.
 
 When generating a document, continue naturally from the previous one instead of restarting the project context.
+
+## Security Guidelines (Step 16)
+1. **Never execute user code**: Verity must NEVER evaluate repository files as executable code. Banned functions: `eval()`, `child_process`, `vm`.
+2. **Tenant Data Isolation**: Every data query crossing tenant boundaries must include the `workspaceId` derived from the server session, never the client request, to prevent IDOR vulnerabilities.
+3. **Prompt Injection Defense**: When passing untrusted code to the AI, it must be firmly enclosed in `<repository_code>` delimiters, accompanied by explicit System Instructions to ignore evaluated instructions inside those tags.
+4. **Ephemeral Isolation**: Storage allocated for remote repository analysis must be deleted in a guaranteed `finally` block to prevent persistent data leaks across async jobs.
+
+## Incident Response Guidelines (Step 19)
+1. **P0/P1 Incident Postmortems**: Every P0 (Service Down) and P1 (Critical Degradation) incident MUST have a postmortem written and stored in `docs/postmortems/`. Do not consider an incident resolved until the postmortem is drafted using the format established in `docs/postmortems/template.md`.
+2. **Unified Tracing**: Any logs or errors generated during a web request or job execution must include the `requestId` to ensure cross-system correlation via Sentry and Axiom.
+3. **Structured Alerting**: Avoid text-heavy `console.log` spam; always prefer the structured JSON `logger.info()` implementation, reserving `logger.error()` exclusively for actionable alerts tied to Runbooks.

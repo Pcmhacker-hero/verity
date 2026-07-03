@@ -6,7 +6,7 @@
  * accounts, sessions, and verification tokens without changing domain IDs.
  */
 
-import { boolean, index, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 
 /**
  * User — Doc 10 §4.2.
@@ -76,3 +76,23 @@ export const authVerifications = pgTable('auth_verification', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Rate Limits — Doc 18 §9.4
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const rateLimits = pgTable(
+  'rate_limit',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => authUsers.id, { onDelete: 'cascade' }),
+    endpointTier: text('endpoint_tier').notNull(),
+    windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
+    requestCount: integer('request_count').notNull().default(1),
+  },
+  (t) => [
+    unique().on(t.userId, t.endpointTier, t.windowStart),
+    index('idx_rate_limit_window').on(t.windowStart),
+  ]
+);
