@@ -10,6 +10,7 @@
 
 import { randomUUID } from 'crypto';
 import { db } from '@verity/database';
+import { logger, reportError } from '@verity/shared/observability';
 import { jobs } from '@verity/database/schema';
 import { eq, and } from 'drizzle-orm';
 import type { JobType, AnyJobPayload, JobStatusResponse, JobError } from '@verity/shared/types';
@@ -204,12 +205,21 @@ export async function processInBatches<T, R>(
     const batch = items.slice(i, i + batchSize);
     const batchIndex = Math.floor(i / batchSize);
     
-    const batchResults = await processor(batch, batchIndex);
-    results.push(...batchResults);
-    
-    completed += batch.length;
-    if (onProgress) {
-      onProgress(completed, items.length);
+    try {
+      const batchResults = await processor(batch, batchIndex);
+      results.push(...batchResults);
+      
+      completed += batch.length;
+      if (onProgress) {
+        onProgress(completed, items.length);
+      }
+    } catch (error) {
+      reportError(error, {
+        service: 'verity-background-task',
+        tags: { task: 'jobCleanup' },
+        severity: 'error'
+      });
+      logger.error('background_task_failed', { task: 'jobCleanup', error });
     }
   }
 

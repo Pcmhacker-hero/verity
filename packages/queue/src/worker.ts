@@ -25,7 +25,7 @@ import type {
   QueueEvent,
   QueueEventType,
 } from '@verity/shared/types';
-import { logger, runWithContext } from '@verity/shared/observability';
+import { logger, runWithContext, reportError } from '@verity/shared/observability';
 
 export interface WorkerOptions {
   workerId: string;
@@ -170,6 +170,13 @@ export abstract class BaseWorker extends EventEmitter {
           return;
         }
         await this.handleJobFailure(job, error);
+        
+        reportError(error, {
+          service: 'verity-worker',
+          tags: { queue: this.queueName, attempt: job.attempt },
+          severity: 'error'
+        });
+        
         logger.error('job_failed', { error });
       });
     } finally {

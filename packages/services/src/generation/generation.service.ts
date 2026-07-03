@@ -9,7 +9,7 @@
  */
 
 import { SpecService } from '../spec/spec.service.js';
-import { logger } from '@verity/shared/observability';
+import { logger, reportError } from '@verity/shared/observability';
 import { 
   GenerationEngine, 
   MockProvider, 
@@ -115,18 +115,27 @@ export class GenerationService {
     const schema = this.getSchemaForArtifact(artifactType);
 
     // 3. Generate Validated Output via AI Engine
-    const response = await engine.generateValidatedOutput(systemPrompt, userPrompt, schema as any);
+    try {
+      const response = await engine.generateValidatedOutput(systemPrompt, userPrompt, schema as any);
 
-    // 4. Persist the generated artifact via SpecService (Creates immutable SpecVersion)
-    const newVersion = await this.specService.updateArtifact(projectId, artifactType, response.data, 'generation');
+      // 4. Persist the generated artifact via SpecService (Creates immutable SpecVersion)
+      const newVersion = await this.specService.updateArtifact(projectId, artifactType, response.data, 'generation');
 
-    return {
-      specVersionId: newVersion!.id,
-      versionNumber: newVersion!.versionNumber,
-      usage: response.usage,
-      durationMs: response.duration_ms,
-      model: response.model
-    };
+      return {
+        specVersionId: newVersion!.id,
+        versionNumber: newVersion!.versionNumber,
+        usage: response.usage,
+        durationMs: response.duration_ms,
+        model: response.model
+      };
+    } catch (error) {
+      reportError(error, {
+        service: 'verity-generation-service',
+        tags: { projectId, artifactType },
+        severity: 'error'
+      });
+      throw error;
+    }
   }
 
   /**

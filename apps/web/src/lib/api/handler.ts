@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { getAuthContext, type AuthContext } from '@/lib/auth/session';
-import { logger, runWithContext } from '@verity/shared/observability';
+import { logger, runWithContext, reportError } from '@verity/shared/observability';
 
 type HandlerContext = {
   requestId: string;
@@ -67,12 +67,21 @@ export function withApiAuth<RouteContext = unknown>(handler: ApiHandler<RouteCon
         }
       );
     } catch (error) {
+      const isAppError = error instanceof AppError;
       const appError =
-        error instanceof AppError
+        isAppError
           ? error
           : error instanceof ZodError
             ? new AppError('VALIDATION_ERROR', 'Request validation failed.', 422, { issues: error.issues })
             : new AppError('INTERNAL_ERROR', 'Unexpected server error.', 500);
+
+      if (!isAppError) {
+        reportError(error, {
+          service: 'verity-web',
+          tags: { route: request.nextUrl.pathname, method: request.method },
+          severity: appError.statusCode >= 500 ? 'error' : 'warning',
+        });
+      }
 
       return runWithContext({ requestId }, () => {
         logger.error('api_request_failed', {
