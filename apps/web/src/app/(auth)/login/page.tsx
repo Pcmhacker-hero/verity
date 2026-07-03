@@ -6,8 +6,8 @@ import Link from "next/link"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 
-import { loginSchema, type LoginInput } from "@/lib/validations/auth"
-import { signIn } from "@/lib/auth-client"
+import { loginSchema, type LoginInput } from "@verity/shared/validation"
+import { authClient } from "@/lib/auth/client"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -41,7 +41,7 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginInput) {
     setIsLoading(true)
-    const { error } = await signIn.email({
+    const { error } = await authClient.signIn.email({
       email: data.email,
       password: data.password,
     })

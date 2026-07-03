@@ -19,6 +19,15 @@ export const auth = betterAuth({
       verification: authVerifications,
     },
   }),
+  user: {
+    additionalFields: {
+      role: {
+        type: 'string',
+        required: true,
+        defaultValue: 'user',
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: config.auth.requireEmailVerification,
@@ -29,7 +38,7 @@ export const auth = betterAuth({
       clientSecret: config.auth.github.clientSecret,
       // User authentication only. Repository connection OAuth is a separate
       // Step 4+ flow because it needs project-scoped state and token indirection.
-      scope: ['read:user', 'user:email'],
+      scope: ['read:user', 'user:email', 'repo'],
     },
   },
   session: {

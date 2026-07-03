@@ -1,6 +1,7 @@
 "use client"
 
 import { WorkspaceSettings } from "@/components/settings/workspace-settings"
+import { GithubSettings } from "@/components/settings/github-settings"
 
 export default function SettingsPage() {
   return (
@@ -14,6 +15,7 @@ export default function SettingsPage() {
       
       <div className="grid gap-6">
         <WorkspaceSettings />
+        <GithubSettings />
       </div>
     </div>
   )

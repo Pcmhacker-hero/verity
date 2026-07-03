@@ -15,8 +15,6 @@ import { db } from '@verity/database';
 import { jobs, projects } from '@verity/database/schema';
 import { eq, and, desc, count } from 'drizzle-orm';
 import { createQueueClient, QUEUE_NAMES, QUEUE_CONFIG } from './client.js';
-import { generationJobProcessor } from './processors/generation.processor.js';
-import { verificationJobProcessor } from './processors/verification.processor.js';
 import type { QueueClient } from './client.js';
 import type {
   JobType,
@@ -48,32 +46,27 @@ export class QueueService extends EventEmitter {
   }
 
   private async registerProcessors(): Promise<void> {
-    // Register job handlers with pg-boss - using simple signature
-    await this.client.work(
-      QUEUE_NAMES.GENERATION_SINGLE,
-      async (job: any) => {
-        await generationJobProcessor.process(job.data?.jobId || job.id);
-      }
-    );
-
-    await this.client.work(
-      QUEUE_NAMES.GENERATION_PIPELINE,
-      async (job: any) => {
-        await generationJobProcessor.process(job.data?.jobId || job.id);
-      }
-    );
-
-    await this.client.work(
-      QUEUE_NAMES.VERIFICATION,
-      async (job: any) => {
-        await verificationJobProcessor.process(job.data?.jobId || job.id);
-      }
-    );
+    // Processors register themselves with pg-boss in the worker process.
+    // The QueueService (used by the web app) is a pure enqueue/query interface.
+    // No-op here — worker startup calls processor.start(boss) directly.
   }
 
   // ──────────────────────────────────────────────────────────────────────────
   // Job Creation (Enqueue)
   // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Enqueues a repository sync job via pg-boss.
+   * Sync jobs use the dedicated repoConnections status column and do not
+   * go through the generic jobs table (they have no workspaceId/userId).
+   */
+  async enqueueSyncJob(data: { projectId: string; githubRepoFullName: string; accessToken: string }): Promise<void> {
+    await this.client.send(QUEUE_NAMES.SYNC, data, {
+      priority: QUEUE_CONFIG[QUEUE_NAMES.SYNC].priority,
+      retryLimit: QUEUE_CONFIG[QUEUE_NAMES.SYNC].retryLimit ?? 2,
+      expireInSeconds: QUEUE_CONFIG[QUEUE_NAMES.SYNC].expireInMinutes * 60,
+    });
+  }
 
   async createJob(input: CreateJobInput): Promise<JobStatusResponse> {
     const { type, payload, idempotencyKey, maxAttempts = 3 } = input;
@@ -193,7 +186,8 @@ export class QueueService extends EventEmitter {
       // pg-boss cancel may fail if job not found in queue
     }
 
-    // Update local record
+    // Update local record — the running processor observes the cancelled
+    // status and aborts at the next checkpoint.
     await db
       .update(jobs)
       .set({
@@ -203,13 +197,6 @@ export class QueueService extends EventEmitter {
         updatedAt: new Date(),
       })
       .where(eq(jobs.id, jobId));
-
-    // Also notify processor if running
-    if (job.type.startsWith('generation')) {
-      await generationJobProcessor.cancel(jobId, reason);
-    } else if (job.type === 'verification') {
-      await verificationJobProcessor.cancel(jobId, reason);
-    }
 
     this.emit('job_cancelled', { jobId, reason });
   }

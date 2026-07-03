@@ -105,9 +105,21 @@ export class WorkspaceService {
     };
   }
 
-  async createProject(workspaceId: string, name: string): Promise<ProjectSummary> {
-    const project = await this.repository.createProject(workspaceId, name);
+  async createProject(workspaceId: string, name: string, githubRepoFullName?: string, githubToken?: string): Promise<ProjectSummary> {
+    const project = await this.repository.createProject(workspaceId, name, githubRepoFullName, githubToken ? 'github_oauth' : undefined);
     if (!project) throw new NotFoundError('Workspace');
+
+    if (githubRepoFullName && githubToken) {
+      const { getQueueService } = await import('@verity/queue');
+      const queue = getQueueService();
+      if (queue) {
+        await queue.enqueueSyncJob({
+          projectId: project.id,
+          githubRepoFullName,
+          accessToken: githubToken,
+        });
+      }
+    }
 
     return this.toProjectSummary(workspaceId, project);
   }

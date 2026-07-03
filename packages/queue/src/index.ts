@@ -13,8 +13,7 @@ export { BaseWorker } from './worker.js';
 export { workerRegistry, WorkerRegistry } from './registry.js';
 export { QueueService, initializeQueueService, getQueueService, shutdownQueueService } from './service.js';
 
-export { GenerationJobProcessor, generationJobProcessor } from './processors/generation.processor.js';
-export { VerificationJobProcessor, verificationJobProcessor } from './processors/verification.processor.js';
+
 
 export * from './utils/background-tasks.js';
 export * from './utils/monitoring.js';

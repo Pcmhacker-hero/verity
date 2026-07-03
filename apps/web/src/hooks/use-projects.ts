@@ -18,11 +18,11 @@ export function useCreateProject() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async (input: { name: string, githubRepoFullName?: string }) => {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify(input),
       })
       if (!res.ok) {
         throw new Error("Failed to create project")

@@ -21,6 +21,7 @@ export const updateWorkspaceSchema = z.object({
 
 export const createProjectSchema = z.object({
   name: z.string().min(1).max(MAX_PROJECT_NAME_LENGTH).trim(),
+  githubRepoFullName: z.string().min(1).max(200).trim().optional(),
 });
 
 export const updateProjectSchema = z.object({

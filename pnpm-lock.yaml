@@ -98,6 +98,9 @@ importers:
       next:
         specifier: ^15.1.4
         version: 15.5.20(@playwright/test@1.61.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      next-themes:
+        specifier: ^0.3.0
+        version: 0.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react:
         specifier: ^19.0.0
         version: 19.2.7
@@ -165,10 +168,22 @@ importers:
       '@verity/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@verity/verification':
+        specifier: workspace:*
+        version: link:../../packages/verification
+      adm-zip:
+        specifier: ^0.5.10
+        version: 0.5.18
+      drizzle-orm:
+        specifier: ^0.38.3
+        version: 0.38.4(@types/react@19.2.17)(kysely@0.29.2)(pg@8.22.0)(postgres@3.4.9)(react@19.2.7)
       zod:
         specifier: ^3.24.1
         version: 3.25.76
     devDependencies:
+      '@types/adm-zip':
+        specifier: ^0.5.7
+        version: 0.5.8
       '@types/node':
         specifier: ^22.10.5
         version: 22.20.0
@@ -267,9 +282,6 @@ importers:
       '@verity/shared':
         specifier: workspace:*
         version: link:../shared
-      '@verity/verification':
-        specifier: workspace:*
-        version: link:../verification
       drizzle-orm:
         specifier: ^0.38.3
         version: 0.38.4(@types/react@19.2.17)(kysely@0.29.2)(pg@8.22.0)(postgres@3.4.9)(react@19.2.7)
@@ -277,6 +289,9 @@ importers:
         specifier: ^10.1.5
         version: 10.4.2
     devDependencies:
+      '@types/adm-zip':
+        specifier: ^0.5.7
+        version: 0.5.8
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.0
@@ -1845,6 +1860,9 @@ packages:
   '@tybys/wasm-util@0.10.3':
     resolution: {integrity: sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==}
 
+  '@types/adm-zip@0.5.8':
+    resolution: {integrity: sha512-RVVH7QvZYbN+ihqZ4kX/dMiowf6o+Jk1fNwiSdx0NahBJLU787zkULhGhJM8mf/obmLGmgdMM0bXsQTmyfbR7Q==}
+
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
 
@@ -2130,6 +2148,10 @@ packages:
     resolution: {integrity: sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  adm-zip@0.5.18:
+    resolution: {integrity: sha512-ufJnssQGbxzLNS1Ho9bCtX4rQKCCvoVuDLHoJyc3F9dOGDB4BkWs2Ci0kv53lqocAEQ/Cbi+I2XCsNYGqVYqng==}
+    engines: {node: '>=12.0'}
 
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
@@ -3597,6 +3619,12 @@ packages:
 
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
+
+  next-themes@0.3.0:
+    resolution: {integrity: sha512-/QHIrsYpd6Kfk7xakK4svpDI5mmXP0gfvCoJdGpZQ2TOrQZmsW0QxjaiLn8wbIKjtm4BTSqLoix4lxYYOnLJ/w==}
+    peerDependencies:
+      react: ^16.8 || ^17 || ^18
+      react-dom: ^16.8 || ^17 || ^18
 
   next@15.5.20:
     resolution: {integrity: sha512-cvyS3/geydan1xLtE3FA8VCgdoQ/Gg/dlOldFkFCbB5VcVYJV7090hQLBnvTW2PwT76Z/dHdzDZCsVhZpoOlUA==}
@@ -5734,6 +5762,10 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
+  '@types/adm-zip@0.5.8':
+    dependencies:
+      '@types/node': 22.20.0
+
   '@types/chai@5.2.3':
     dependencies:
       '@types/deep-eql': 4.0.2
@@ -6026,6 +6058,8 @@ snapshots:
       acorn: 8.17.0
 
   acorn@8.17.0: {}
+
+  adm-zip@0.5.18: {}
 
   agent-base@7.1.4: {}
 
@@ -7740,6 +7774,11 @@ snapshots:
   napi-postinstall@0.3.4: {}
 
   natural-compare@1.4.0: {}
+
+  next-themes@0.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+    dependencies:
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
 
   next@15.5.20(@playwright/test@1.61.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:

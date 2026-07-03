@@ -10,3 +10,4 @@ export * from './core.js';
 export * from './specs.js';
 export * from './verification.js';
 export * from './jobs.js';
+export * from './analysis.js';

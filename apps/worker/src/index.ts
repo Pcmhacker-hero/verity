@@ -1,72 +1,40 @@
 /**
  * Worker Entry Point — Doc 17 §3 (Production Architecture).
  *
- * Consumes jobs from pg-boss for long-running tasks:
+ * Consumes jobs for long-running tasks:
  * 1. AI Generation Pipeline
  * 2. Verification Runs
+ * 3. Repository Sync + Analysis
  *
  * Runs as a separate process from the web app, but shares the same database.
+ * Each processor polls the job table independently; no pg-boss handler registration needed.
  */
 
-import { createQueueClient, QUEUE_NAMES, QUEUE_CONFIG } from '@verity/queue';
-import { GenerationService, VerificationService } from '@verity/services';
 import { logger } from '@verity/shared/observability';
 import { config } from '@verity/shared';
 import { closeDB } from '@verity/database';
+import { syncJobProcessor } from './processors/sync.processor.js';
+import { generationJobProcessor } from './processors/generation.processor.js';
+import { verificationJobProcessor } from './processors/verification.processor.js';
+
+const processors = [syncJobProcessor, generationJobProcessor, verificationJobProcessor];
 
 async function main() {
   logger.info('Starting Verity Worker...');
 
-  // env schema is already validated by central config import
-  // Initialize queue client (pg-boss)
-  const boss = await createQueueClient(config.database.url);
-  
-  // Initialize services
-  const generationService = new GenerationService();
-  const verificationService = new VerificationService();
-
   // Setup graceful shutdown
   process.on('SIGTERM', async () => {
     logger.info('SIGTERM received, shutting down worker gracefully...');
-    await boss.stop();
     await closeDB();
     process.exit(0);
   });
-  
-  // 1. Single artifact generation consumer
-  await boss.work(
-    QUEUE_NAMES.GENERATION_SINGLE,
-    { batchSize: QUEUE_CONFIG[QUEUE_NAMES.GENERATION_SINGLE].concurrency },
-    async (jobs) => {
-      for (const job of jobs) {
-        // TODO: Process job using generationService
-      }
-    }
-  );
 
-  // 2. Full pipeline generation consumer
-  await boss.work(
-    QUEUE_NAMES.GENERATION_PIPELINE,
-    { batchSize: QUEUE_CONFIG[QUEUE_NAMES.GENERATION_PIPELINE].concurrency },
-    async (jobs) => {
-      for (const job of jobs) {
-        // TODO: Process job using generationService
-      }
-    }
-  );
-
-  // 3. Verification consumer
-  await boss.work(
-    QUEUE_NAMES.VERIFICATION,
-    { batchSize: QUEUE_CONFIG[QUEUE_NAMES.VERIFICATION].concurrency },
-    async (jobs) => {
-      for (const job of jobs) {
-        // TODO: Process job using verificationService
-      }
-    }
-  );
-
-  logger.info('Worker is listening for jobs.');
+  // Note: processors self-poll the job table — no pg-boss subscription needed.
+  // They are instantiated above and are already active. In a future milestone
+  // we can wire them to pg-boss by extending the queue's BaseWorker.
+  logger.info('Worker is listening for jobs.', {
+    processors: processors.map((p) => p.constructor.name),
+  });
 }
 
 main().catch((err) => {

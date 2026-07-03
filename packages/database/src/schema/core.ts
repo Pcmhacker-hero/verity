@@ -9,7 +9,7 @@
 
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { pgTable, text, timestamp, uuid, integer, index, unique } from 'drizzle-orm/pg-core';
-import { specVersionSourceEnum } from './enums.js';
+import { specVersionSourceEnum, repoSyncStatusEnum } from './enums.js';
 import { workspaces } from './workspaces.js';
 
 export const projects = pgTable(
@@ -61,6 +61,9 @@ export const repoConnections = pgTable(
       .references(() => projects.id, { onDelete: 'cascade' }),
     githubRepoFullName: text('github_repo_full_name').notNull(),
     oauthTokenRef: text('oauth_token_ref').notNull(),
+    syncStatus: repoSyncStatusEnum('sync_status').notNull().default('pending'),
+    lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
+    error: text('error'),
     connectedAt: timestamp('connected_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique().on(t.projectId)],

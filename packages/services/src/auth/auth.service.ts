@@ -7,8 +7,18 @@
  * - Auto-provision workspace on first login (Doc 10 §4.1)
  */
 
+import { db } from '@verity/database';
+import { authAccounts } from '@verity/database/schema';
+import { eq, and } from 'drizzle-orm';
+
 export class AuthService {
-  // TODO: Initialize Better Auth with GitHub OAuth provider
-  // TODO: Implement workspace auto-provisioning hook
-  // TODO: Session configuration (7-day sliding, 24h idle — Doc 16 §6)
+  async getGithubToken(userId: string): Promise<string | null> {
+    const account = await db.query.authAccounts.findFirst({
+      where: and(
+        eq(authAccounts.userId, userId),
+        eq(authAccounts.providerId, 'github')
+      )
+    });
+    return account?.accessToken ?? null;
+  }
 }

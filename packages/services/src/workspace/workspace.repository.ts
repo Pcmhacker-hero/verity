@@ -90,13 +90,34 @@ export class WorkspaceRepository {
       .limit(input.limit + 1);
   }
 
-  async createProject(workspaceId: string, name: string) {
-    const [project] = await db
-      .insert(projects)
-      .values({ workspaceId, name })
-      .returning();
+  async createProject(workspaceId: string, name: string, githubRepoFullName?: string, oauthTokenRef?: string) {
+    return await db.transaction(async (tx) => {
+      const [project] = await tx
+        .insert(projects)
+        .values({ workspaceId, name })
+        .returning();
+      
+      if (!project) return null;
 
-    return project ?? null;
+      if (githubRepoFullName && oauthTokenRef) {
+        const [connection] = await tx
+          .insert(repoConnections)
+          .values({
+            projectId: project.id,
+            githubRepoFullName,
+            oauthTokenRef,
+          })
+          .returning();
+        
+        if (connection) {
+          await tx.update(projects)
+            .set({ repoConnectionId: connection.id })
+            .where(eq(projects.id, project.id));
+        }
+      }
+
+      return project;
+    });
   }
 
   async findProjectById(workspaceId: string, projectId: string) {

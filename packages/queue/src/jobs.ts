@@ -11,6 +11,7 @@ export const QUEUE_NAMES = {
   GENERATION_SINGLE: 'generation-single',
   GENERATION_PIPELINE: 'generation-pipeline',
   VERIFICATION: 'verification',
+  SYNC: 'sync',
 } as const;
 
 /**
@@ -38,5 +39,12 @@ export const QUEUE_CONFIG = {
     retryLimit: 1,
     retryDelay: 4,
     expireInMinutes: 15,
+  },
+  [QUEUE_NAMES.SYNC]: {
+    priority: 2,
+    concurrency: 2,
+    retryLimit: 2,
+    retryDelay: 10,
+    expireInMinutes: 10,
   },
 } as const;

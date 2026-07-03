@@ -13,3 +13,5 @@ export { GenerationService } from './generation/index.js';
 export { VerificationService } from './verification/index.js';
 export { RepoService } from './repo/index.js';
 export { FindingsService } from './findings/index.js';
+export { AnalysisService } from './analysis/index.js';
+export { GitHubService } from './repo/index.js';

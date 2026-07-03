@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { WorkspaceService } from '@verity/services';
+import { WorkspaceService, AuthService } from '@verity/services';
 import { createProjectSchema, listProjectsQuerySchema, projectListResponseSchema, projectSummaryResponseSchema } from '@verity/shared/validation';
 import type { NextRequest } from 'next/server';
 import type { z } from 'zod';
@@ -17,7 +17,14 @@ export const GET = withApiAuth(async (request: NextRequest, { auth }) => {
 
 export const POST = withApiAuth(async (request: NextRequest, { auth }) => {
   const body = await parseJsonBody(request, createProjectSchema);
-  const project = await workspaceService.createProject(auth.workspaceId, body.name);
+  let githubToken: string | undefined;
+
+  if (body.githubRepoFullName) {
+    const authService = new AuthService();
+    githubToken = await authService.getGithubToken(auth.userId) ?? undefined;
+  }
+
+  const project = await workspaceService.createProject(auth.workspaceId, body.name, body.githubRepoFullName, githubToken);
   return jsonResponse(project, projectSummaryResponseSchema, { status: 201 });
 });
 

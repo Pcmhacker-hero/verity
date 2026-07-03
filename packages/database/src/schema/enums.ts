@@ -9,6 +9,9 @@ import { pgEnum } from 'drizzle-orm/pg-core';
 /** Doc 10 §4.3 — Membership roles */
 export const membershipRoleEnum = pgEnum('membership_role', ['owner', 'admin', 'member']);
 
+/** Doc 11 §3 — Repo Connection sync status */
+export const repoSyncStatusEnum = pgEnum('repo_sync_status', ['pending', 'syncing', 'synced', 'error']);
+
 /** Doc 10 §5.1 — How a SpecVersion was created */
 export const specVersionSourceEnum = pgEnum('spec_version_source', [
   'generation',
@@ -67,4 +70,19 @@ export const generationStageEnum = pgEnum('generation_stage', [
 export const verificationStageEnum = pgEnum('verification_stage', [
   'deterministic',
   'semantic',
+]);
+
+/** Milestone 4 — AI Repository Analysis Pipeline */
+export const analysisStatusEnum = pgEnum('analysis_status', [
+  'queued', 
+  'running', 
+  'complete', 
+  'failed'
+]);
+
+export const analysisStageEnum = pgEnum('analysis_stage', [
+  'ingestion',
+  'discovery',
+  'analysis',
+  'finalizing',
 ]);
