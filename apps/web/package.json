@@ -11,6 +11,8 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.7",
+    "@ai-sdk/react": "^4.0.15",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.4",
@@ -24,6 +26,7 @@
     "@verity/queue": "workspace:*",
     "@verity/services": "workspace:*",
     "@verity/shared": "workspace:*",
+    "ai": "^4.1.43",
     "better-auth": "^1.2.12",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

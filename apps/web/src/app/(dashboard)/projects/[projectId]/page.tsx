@@ -1,6 +1,6 @@
 import * as React from "react"
 import Link from "next/link"
-import { ArrowLeft, CheckCircle2, Settings } from "lucide-react"
+import { ArrowLeft, CheckCircle2, Settings, MessageSquare } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -35,6 +35,12 @@ export default async function ProjectDashboardPage({
             <Button variant="outline">
               <Settings className="mr-2 h-4 w-4" />
               Settings
+            </Button>
+          </Link>
+          <Link href={`/projects/${projectId}/chat`}>
+            <Button variant="outline">
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Chat
             </Button>
           </Link>
           <Link href={`/projects/${projectId}/generate`}>
