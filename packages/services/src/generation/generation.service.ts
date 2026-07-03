@@ -9,7 +9,7 @@
  */
 
 import { SpecService } from '../spec/spec.service.js';
-import { logger } from '@verity/shared';
+import { logger } from '@verity/shared/observability';
 import { 
   GenerationEngine, 
   MockProvider, 

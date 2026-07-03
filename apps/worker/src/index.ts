@@ -11,9 +11,10 @@
 import { createQueueClient, QUEUE_NAMES, QUEUE_CONFIG } from '@verity/queue';
 import { envSchema } from '@verity/shared/validation';
 import { GenerationService, VerificationService } from '@verity/services';
+import { logger } from '@verity/shared/observability';
 
 async function main() {
-  console.log('Starting Verity Worker...');
+  logger.info('Starting Verity Worker...');
 
   // Validate env
   const env = envSchema.parse(process.env);
@@ -27,7 +28,7 @@ async function main() {
 
   // Setup graceful shutdown
   process.on('SIGTERM', async () => {
-    console.log('SIGTERM received, shutting down worker gracefully...');
+    logger.info('SIGTERM received, shutting down worker gracefully...');
     await boss.stop();
     process.exit(0);
   });
@@ -65,10 +66,10 @@ async function main() {
     }
   );
 
-  console.log('Worker is listening for jobs.');
+  logger.info('Worker is listening for jobs.');
 }
 
 main().catch((err) => {
-  console.error('Worker failed to start:', err);
+  logger.fatal('Worker failed to start', { error: err });
   process.exit(1);
 });

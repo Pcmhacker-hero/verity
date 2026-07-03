@@ -9,7 +9,7 @@ import { db } from '@verity/database';
 import { jobs } from '@verity/database/schema';
 import { eq, and, desc, count, sql, gte, lt } from 'drizzle-orm';
 import type { JobType, JobStatus, QueueMetrics } from '@verity/shared/types';
-import { logger } from '@verity/shared';
+import { logger } from '@verity/shared/observability';
 
 export interface QueueHealthCheck {
   queueName: JobType;

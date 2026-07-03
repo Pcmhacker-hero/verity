@@ -25,6 +25,7 @@ import type {
   QueueEvent,
   QueueEventType,
 } from '@verity/shared/types';
+import { logger, runWithContext } from '@verity/shared/observability';
 
 export interface WorkerOptions {
   workerId: string;
@@ -130,29 +131,47 @@ export abstract class BaseWorker extends EventEmitter {
     this.activeJobs.set(job.id, controller);
 
     try {
-      this.emitJobEvent('job_started', job);
-      await this.updateJobProgress(job.id, {
-        currentStep: 'Starting...',
-        stepsCompleted: 0,
-        stepsTotal: job.stepsTotal ?? 1,
-        completedSteps: [],
-      });
+      await runWithContext(
+        { 
+          requestId: job.id, // Use job ID as the correlation ID for the worker's thread
+          jobId: job.id, 
+          projectId: job.projectId,
+          workspaceId: job.workspaceId
+        },
+        async () => {
+          this.emitJobEvent('job_started', job);
+          logger.info('job_started', { attempt: job.attempt, queueName: this.queueName });
 
-      const result = await this.processJob(job);
+          await this.updateJobProgress(job.id, {
+            currentStep: 'Starting...',
+            stepsCompleted: 0,
+            stepsTotal: job.stepsTotal ?? 1,
+            completedSteps: [],
+          });
 
-      if (controller.signal.aborted) {
-        await this.handleCancellation(job);
-        return;
-      }
+          const result = await this.processJob(job);
 
-      await this.completeJob(job, result);
-      this.emitJobEvent('job_completed', job, { result });
+          if (controller.signal.aborted) {
+            await this.handleCancellation(job);
+            logger.warn('job_cancelled', { reason: 'Aborted during processing' });
+            return;
+          }
+
+          await this.completeJob(job, result);
+          this.emitJobEvent('job_completed', job, { result });
+          logger.info('job_completed', { result });
+        }
+      );
     } catch (error) {
-      if (controller.signal.aborted) {
-        await this.handleCancellation(job);
-        return;
-      }
-      await this.handleJobFailure(job, error);
+      await runWithContext({ requestId: job.id, jobId: job.id, projectId: job.projectId }, async () => {
+        if (controller.signal.aborted) {
+          await this.handleCancellation(job);
+          logger.warn('job_cancelled_during_error', { reason: 'Aborted' });
+          return;
+        }
+        await this.handleJobFailure(job, error);
+        logger.error('job_failed', { error });
+      });
     } finally {
       this.activeJobs.delete(job.id);
     }

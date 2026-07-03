@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { getAuthContext, type AuthContext } from '@/lib/auth/session';
-import { logger } from './logger';
+import { logger, runWithContext } from '@verity/shared/observability';
 
 type HandlerContext = {
   requestId: string;
@@ -34,7 +34,7 @@ function errorResponse(error: AppError, requestId: string) {
 
 export function withApiAuth<RouteContext = unknown>(handler: ApiHandler<RouteContext>) {
   return async (request: NextRequest, routeContext: RouteContext) => {
-    const requestId = randomUUID();
+    const requestId = request.headers.get('x-request-id') ?? randomUUID();
     const startedAt = Date.now();
 
     try {
@@ -52,16 +52,20 @@ export function withApiAuth<RouteContext = unknown>(handler: ApiHandler<RouteCon
         throw new AuthenticationError();
       }
 
-      const response = await handler(request, { requestId, auth }, routeContext);
-      logger.info('api_request_completed', {
-        requestId,
-        method: request.method,
-        path: request.nextUrl.pathname,
-        status: response.status,
-        durationMs: Date.now() - startedAt,
-      });
-      response.headers.set('x-request-id', requestId);
-      return response;
+      return await runWithContext(
+        { requestId, userId: auth.userId, workspaceId: auth.workspaceId },
+        async () => {
+          const response = await handler(request, { requestId, auth }, routeContext);
+          logger.info('api_request_completed', {
+            method: request.method,
+            path: request.nextUrl.pathname,
+            status: response.status,
+            durationMs: Date.now() - startedAt,
+          });
+          response.headers.set('x-request-id', requestId);
+          return response;
+        }
+      );
     } catch (error) {
       const appError =
         error instanceof AppError
@@ -70,16 +74,18 @@ export function withApiAuth<RouteContext = unknown>(handler: ApiHandler<RouteCon
             ? new AppError('VALIDATION_ERROR', 'Request validation failed.', 422, { issues: error.issues })
             : new AppError('INTERNAL_ERROR', 'Unexpected server error.', 500);
 
-      logger.error('api_request_failed', {
-        requestId,
-        method: request.method,
-        path: request.nextUrl.pathname,
-        status: appError.statusCode,
-        code: appError.code,
-        durationMs: Date.now() - startedAt,
-      });
+      return runWithContext({ requestId }, () => {
+        logger.error('api_request_failed', {
+          method: request.method,
+          path: request.nextUrl.pathname,
+          status: appError.statusCode,
+          code: appError.code,
+          durationMs: Date.now() - startedAt,
+          error: appError,
+        });
 
-      return errorResponse(appError, requestId);
+        return errorResponse(appError, requestId);
+      });
     }
   };
 }

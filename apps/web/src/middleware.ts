@@ -14,6 +14,10 @@ function hasSessionCookie(request: NextRequest) {
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  
+  // 0. Request ID Generation
+  const requestId = request.headers.get('x-request-id') ?? crypto.randomUUID();
+  request.headers.set('x-request-id', requestId);
 
   // API Route Handling: Rate Limiting & CORS
   if (pathname.startsWith('/api/')) {
@@ -32,14 +36,18 @@ export function middleware(request: NextRequest) {
     rateLimitMap.set(ip, userRecord);
     
     if (userRecord.count > MAX_REQUESTS) {
-      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', requestId },
+        { status: 429, headers: { 'x-request-id': requestId } }
+      );
     }
 
     // 2. CORS Headers
     const response = NextResponse.next();
     response.headers.set('Access-Control-Allow-Origin', '*');
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-request-id');
+    response.headers.set('x-request-id', requestId);
     
     // Handle OPTIONS preflight
     if (request.method === 'OPTIONS') {
@@ -53,12 +61,18 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
   if (!isProtectedRoute || hasSessionCookie(request)) {
-    return NextResponse.next();
+    const res = NextResponse.next({
+      request: { headers: request.headers },
+    });
+    res.headers.set('x-request-id', requestId);
+    return res;
   }
 
   const loginUrl = new URL('/login', request.url);
   loginUrl.searchParams.set('next', `${pathname}${search}`);
-  return NextResponse.redirect(loginUrl);
+  const redirectRes = NextResponse.redirect(loginUrl);
+  redirectRes.headers.set('x-request-id', requestId);
+  return redirectRes;
 }
 
 export const config = {
