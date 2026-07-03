@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { reportError } from '../observability/error-reporter.js';
 
-const envSchema = z.object({
+export const configSchema = z.object({
   // Environment
   NODE_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
   SERVICE_NAME: z.string().default('verity'),
@@ -37,12 +37,12 @@ const envSchema = z.object({
   ALERT_AI_GENERATION_CRITICAL_MS: z.coerce.number().default(90000),
 });
 
-let parsedConfig: z.infer<typeof envSchema>;
+let parsedConfig: z.infer<typeof configSchema>;
 
 try {
   // Try to parse process.env. We use .passthrough() internally if we need to let nextjs variables through, 
-  // but envSchema filters strictly.
-  parsedConfig = envSchema.parse(process.env);
+  // but configSchema filters strictly.
+  parsedConfig = configSchema.parse(process.env);
 } catch (error) {
   if (error instanceof z.ZodError) {
     const issues = error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
@@ -55,7 +55,7 @@ try {
       process.exit(1);
     }
     // Fallback for tests or build phase if needed, using unknown to strictly cast
-    parsedConfig = process.env as unknown as z.infer<typeof envSchema>;
+    parsedConfig = process.env as unknown as z.infer<typeof configSchema>;
   } else {
     throw error;
   }
