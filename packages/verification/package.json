@@ -1,0 +1,25 @@
+{
+  "name": "@verity/verification",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./tier1": "./dist/tier1/index.js",
+    "./utils/ast.js": "./dist/utils/ast.js"
+  },
+  "scripts": { "build": "tsc", "typecheck": "tsc --noEmit", "clean": "rm -rf dist" },
+  "dependencies": {
+    "@verity/shared": "workspace:*",
+    "@verity/ai": "workspace:*",
+    "@verity/database": "workspace:*",
+    "drizzle-orm": "^0.38.3"
+  },
+  "devDependencies": {
+    "@verity/typescript-config": "workspace:*",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.3"
+  }
+}

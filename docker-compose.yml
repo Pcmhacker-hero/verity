@@ -1,0 +1,28 @@
+# Doc 17 §6, §12 (Local Environment & Database)
+#
+# Docker Compose for local development database and services.
+# Note: The applications (web, worker) run via `pnpm dev` locally,
+# but docker-compose provides the PostgreSQL instance.
+
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: verity
+      POSTGRES_PASSWORD: verity_password
+      POSTGRES_DB: verity
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U verity -d verity"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:

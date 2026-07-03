@@ -1,0 +1,28 @@
+{
+  "name": "@verity/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@verity/shared": "workspace:*",
+    "@verity/database": "workspace:*",
+    "@verity/services": "workspace:*",
+    "@verity/queue": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@verity/typescript-config": "workspace:*",
+    "@verity/eslint-config": "workspace:*",
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
