@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { withApiAuth } from '@/lib/api/handler';
 import { WorkspaceService, SpecService } from '@verity/services';
 import { prdArtifactSchema } from '@verity/shared/validation';
-import { VerityError } from '@verity/shared/errors';
+
 
 type RouteContext = { params: Promise<{ projectId: string }> };
 

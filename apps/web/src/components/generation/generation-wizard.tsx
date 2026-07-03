@@ -4,7 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { z } from "zod"
+import type { z } from "zod"
 import { generatePipelineSchema } from "@verity/shared/validation"
 import { Loader2, Wand2 } from "lucide-react"
 
@@ -54,7 +54,7 @@ export function GenerationWizard({ projectId }: GenerationWizardProps) {
 
       // Navigate to the PRD spec view after successful "generation"
       router.push(`/projects/${projectId}/spec/prd`)
-    } catch (_error) {
+    } catch {
       form.setError("root", {
         message: "Generation failed. Please try again.",
       })

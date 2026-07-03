@@ -36,7 +36,7 @@ export function ArtifactManager({ projectId, artifactType }: ArtifactManagerProp
 
   const updateMutation = useMutation({
     mutationFn: async (content: string) => {
-      let payload: any;
+      let payload: Record<string, unknown>;
       try {
         payload = JSON.parse(content);
       } catch {

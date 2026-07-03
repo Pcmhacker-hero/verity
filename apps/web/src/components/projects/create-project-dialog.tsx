@@ -46,7 +46,7 @@ export function CreateProjectDialog({ children }: { children?: React.ReactNode }
       await createProject(values.name)
       form.reset()
       setOpen(false)
-    } catch (_error) {
+    } catch {
       form.setError("root", {
         message: "Failed to create project. Please try again.",
       })

@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { SpecService } from '@verity/services';
 import { VerityError } from '@verity/shared/errors';
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proj
         'Content-Type': 'text/markdown',
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof VerityError) {
       return NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.statusCode });
     }

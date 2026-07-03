@@ -1,6 +1,6 @@
 /** Finding Detail — Doc 12 §6.11. Full explanation + code reference. */
 export default function FindingDetailPage({
-  params,
+  params: _params,
 }: {
   params: Promise<{ projectId: string; findingId: string }>;
 }) {

@@ -3,7 +3,7 @@
 import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { z } from "zod"
+import type { z } from "zod"
 import { Loader2, Save } from "lucide-react"
 import { updateWorkspaceSchema } from "@verity/shared/validation"
 
@@ -57,7 +57,7 @@ export function WorkspaceSettings() {
       await updateWorkspace({ name: values.name })
       setSuccessMessage("Workspace settings updated successfully.")
       setTimeout(() => setSuccessMessage(null), 3000)
-    } catch (_error) {
+    } catch {
       form.setError("root", {
         message: "Failed to update workspace. Please try again.",
       })

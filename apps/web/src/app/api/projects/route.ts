@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { WorkspaceService } from '@verity/services';
 import { createProjectSchema, listProjectsQuerySchema, projectListResponseSchema, projectSummaryResponseSchema } from '@verity/shared/validation';
 import type { NextRequest } from 'next/server';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { withApiAuth } from '@/lib/api/handler';
 import { jsonResponse } from '@/lib/api/responses';
 import { parseJsonBody, parseSearchParams } from '@/lib/api/validation';

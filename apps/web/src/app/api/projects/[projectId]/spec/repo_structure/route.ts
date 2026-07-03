@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { withApiAuth } from '@/lib/api/handler';
 import { WorkspaceService, SpecService } from '@verity/services';
-import { VerityError } from '@verity/shared/errors';
+
 
 type RouteContext = { params: Promise<{ projectId: string }> };
 

@@ -21,8 +21,8 @@ export function ArtifactEditor({ initialContent, onSave }: ArtifactEditorProps) 
     setError(null)
     try {
       await onSave(content)
-    } catch (err: any) {
-      setError(err.message || "Failed to save artifact.")
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save artifact.")
     } finally {
       setIsSaving(false)
     }

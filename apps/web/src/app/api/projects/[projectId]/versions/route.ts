@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { db } from '@verity/database';
 import { specVersions } from '@verity/database/schema';
@@ -19,7 +20,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proj
     const { projectId } = await params;
     const url = new URL(req.url);
     const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-    const cursor = url.searchParams.get('cursor'); // In v1, cursor could just be an offset, but let's implement basic for now.
     
     // Quick history fetch implementation (ideally belongs in repository, but placing here for simplicity per Step 5 scope)
     const history = await db
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proj
         hasMore: false,
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof VerityError) {
       return NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.statusCode });
     }
