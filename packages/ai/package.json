@@ -5,6 +5,12 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./engine": "./dist/engine.js",
+    "./providers/anthropic": "./dist/providers/anthropic.provider.js",
+    "./prompts/verification/semantic.prompt": "./dist/prompts/verification/semantic.prompt.js"
+  },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",

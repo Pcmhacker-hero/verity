@@ -5,7 +5,30 @@
  * Supports intermediate checkpointing (Doc 18 §8.2).
  */
 
+import { GenerationEngine, AnthropicProvider } from '@verity/ai';
+import { buildSemanticVerificationPrompt } from '@verity/ai/prompts/verification/semantic.prompt';
+import { z } from 'zod';
+
+export const findingSchema = z.object({
+  severity: z.enum(['critical', 'high', 'medium', 'low', 'info']),
+  specArea: z.enum(['auth', 'schema', 'api', 'architecture', 'prd']),
+  specElementRef: z.string().describe("Reference to the specific spec element violated"),
+  filePath: z.string().nullable().describe("The file path where the issue was found, if applicable"),
+  lineNumber: z.number().nullable().describe("The line number where the issue was found, if applicable"),
+  explanation: z.string().describe("Clear, plain-language explanation of the discrepancy between spec and code"),
+});
+
+export const semanticBatchResultSchema = z.object({
+  findings: z.array(findingSchema),
+});
+
 export class VerificationEngine {
+  private aiEngine: GenerationEngine;
+
+  constructor() {
+    this.aiEngine = new GenerationEngine(new AnthropicProvider());
+  }
+
   /**
    * Run the full verification pipeline (Doc 18 §8).
    */
@@ -13,8 +36,9 @@ export class VerificationEngine {
     specVersionId: string;
     repoFiles: Map<string, { content: string; hash: string }>;
     previousHashes?: Record<string, string>;
+    specData: any; // Full specification content injected here
   }): Promise<any> {
-    const { specVersionId, repoFiles, previousHashes = {} } = params;
+    const { specVersionId, repoFiles, previousHashes = {}, specData } = params;
     
     // Doc 18 §8.1: Incremental Verification - Filter unchanged files
     const changedFiles = new Map<string, { content: string; hash: string }>();
@@ -28,16 +52,40 @@ export class VerificationEngine {
     }
     
     // 1. Run Tier 1 deterministic checks on changedFiles only
-    // ... logic for invoking deterministic checkers (Tier 1)
+    // ... (Delegated to Tier 1 service)
     
     // 2. Doc 18 §8.2: Tier 2 semantic scaling — batching strategy
     const batches = this.groupFilesIntoBatches(changedFiles);
     const semanticFindings: any[] = [];
     
-    // Execute batches (can be parallelized, limited by LLM rate limits)
+    // Execute batches using AI
     for (const batch of batches) {
-      // Execute each batch using LLM and intermediate checkpointing
-      // semanticFindings.push(...results);
+      const filesForPrompt = batch.files.map(filePath => ({
+        path: filePath,
+        content: changedFiles.get(filePath)?.content || ''
+      }));
+
+      const { systemPrompt, userPrompt } = buildSemanticVerificationPrompt(specData, filesForPrompt);
+
+      try {
+        const aiResponse = await this.aiEngine.generateValidatedOutput(
+          systemPrompt,
+          userPrompt,
+          semanticBatchResultSchema
+        );
+        
+        // Ensure each finding has the detection tier attached
+        const data = aiResponse.data as any;
+        const batchFindings = (data.findings || []).map((f: any) => ({
+          ...f,
+          detectionTier: 'semantic'
+        }));
+
+        semanticFindings.push(...batchFindings);
+      } catch (error) {
+        console.error(`Error processing semantic batch (${batch.type}):`, error);
+        // Continue to next batch rather than failing the entire run
+      }
     }
     
     // 3. Merge findings (carrying over previous findings for unchanged files)

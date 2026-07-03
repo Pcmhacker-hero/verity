@@ -8,14 +8,16 @@
   "exports": {
     ".": "./dist/index.js",
     "./tier1": "./dist/tier1/index.js",
-    "./utils/ast.js": "./dist/utils/ast.js"
+    "./utils/ast.js": "./dist/utils/ast.js",
+    "./engine": "./dist/engine.js"
   },
   "scripts": { "build": "tsc", "typecheck": "tsc --noEmit", "clean": "rm -rf dist" },
   "dependencies": {
     "@verity/shared": "workspace:*",
     "@verity/ai": "workspace:*",
     "@verity/database": "workspace:*",
-    "drizzle-orm": "^0.38.3"
+    "drizzle-orm": "^0.38.3",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@verity/typescript-config": "workspace:*",
