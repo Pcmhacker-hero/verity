@@ -22,7 +22,7 @@ export default async function ChatPage({
       workspaceId: auth.workspaceId,
       projectId,
     });
-  } catch (_error) {
+  } catch {
     redirect('/projects');
   }
 
@@ -45,8 +45,9 @@ export default async function ChatPage({
     initialMessages = messages.map((msg) => ({
       id: msg.id,
       role: msg.role as 'user' | 'assistant' | 'system',
+      content: msg.content,
       parts: [{ type: 'text', text: msg.content }],
-    } as any));
+    } as UIMessage));
   }
 
   return (
