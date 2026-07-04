@@ -3,7 +3,7 @@ import { BillingService } from '@verity/services';
 import { db } from '@verity/database';
 import { eq } from 'drizzle-orm';
 import { subscriptions } from '@verity/database/schema';
-import Stripe from 'stripe';
+import type { Stripe } from 'stripe';
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -17,9 +17,10 @@ export async function POST(req: Request) {
 
   try {
     event = BillingService.stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err: any) {
-    console.error(`Webhook signature verification failed.`, err.message);
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error(`Webhook signature verification failed: ${errorMessage}`);
+    return NextResponse.json({ error: `Webhook Error: ${errorMessage}` }, { status: 400 });
   }
 
   try {

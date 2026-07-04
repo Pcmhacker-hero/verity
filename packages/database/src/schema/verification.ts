@@ -8,6 +8,7 @@
 import { sql } from 'drizzle-orm';
 import { pgTable, text, timestamp, uuid, integer, index, check, jsonb } from 'drizzle-orm/pg-core';
 import { projects, specVersions } from './core.js';
+import { authUsers } from './auth.js';
 import {
   verificationRunStatusEnum,
   severityEnum,
@@ -63,6 +64,7 @@ export const findings = pgTable(
     detectionTier: detectionTierEnum('detection_tier').notNull(),
     /** Doc 10 §6.3: column exists now for Epic H6 (Later) — zero-cost future migration */
     status: findingStatusEnum('status').notNull().default('open'),
+    assigneeId: text('assignee_id').references(() => authUsers.id, { onDelete: 'set null' }),
   },
   (t) => [
     /** Doc 18 §5.3: findings by run + severity (primary filter) */
@@ -71,4 +73,25 @@ export const findings = pgTable(
     index('idx_finding_run_spec_area').on(t.verificationRunId, t.specArea),
     check('finding_line_number_positive', sql`${t.lineNumber} IS NULL OR ${t.lineNumber} > 0`),
   ],
+);
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Finding Comment — Milestone 8 (Team Collaboration)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const findingComments = pgTable(
+  'finding_comment',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    findingId: uuid('finding_id')
+      .notNull()
+      .references(() => findings.id, { onDelete: 'cascade' }),
+    authorId: text('author_id')
+      .notNull()
+      .references(() => authUsers.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('idx_finding_comment_finding').on(t.findingId, t.createdAt)]
 );

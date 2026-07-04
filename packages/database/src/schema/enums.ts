@@ -47,7 +47,15 @@ export const specAreaEnum = pgEnum('spec_area', [
 export const detectionTierEnum = pgEnum('detection_tier', ['deterministic', 'semantic']);
 
 /** Doc 10 §6.3 — Finding status */
-export const findingStatusEnum = pgEnum('finding_status', ['open', 'acknowledged']);
+export const findingStatusEnum = pgEnum('finding_status', [
+  'open',
+  'assigned',
+  'in-progress',
+  'resolved',
+  'verified',
+  'acknowledged',
+  'wont-fix'
+]);
 
 /** Doc 11 §4, Doc 14 §4.2 — Async job lifecycle (generic, shared by generation & verification) */
 export const jobStatusEnum = pgEnum('job_status', ['queued', 'running', 'complete', 'failed', 'cancelled']);

@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@verity/database';
-import { findings, verificationRuns } from '@verity/database/schema';
+import { findings, verificationRuns, authUsers } from '@verity/database/schema';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { auth } from '@/lib/auth/config'; // Server-side auth checker
 
@@ -49,25 +50,38 @@ export async function GET(
     if (severityParam) {
       const severities = severityParam.split(',').filter(Boolean);
       if (severities.length > 0) {
-        conditions.push(inArray(findings.severity, severities as any[]));
+        conditions.push(inArray(findings.severity, severities as Array<"critical" | "high" | "medium" | "low" | "info">));
       }
     }
     
     if (specAreaParam) {
       const areas = specAreaParam.split(',').filter(Boolean);
       if (areas.length > 0) {
-        conditions.push(inArray(findings.specArea, areas as any[]));
+        conditions.push(inArray(findings.specArea, areas as Array<"auth" | "schema" | "api_contract" | "architecture" | "other">));
       }
     }
 
-    // 3. Query findings
-    const results = await db.query.findings.findMany({
-      where: and(...conditions),
-      orderBy: [desc(findings.severity)],
-    });
+    // 3. Query findings with assignee details
+    const rawResults = await db.select({
+      finding: findings,
+      assignee: {
+        id: authUsers.id,
+        name: authUsers.name,
+        image: authUsers.image,
+      }
+    })
+    .from(findings)
+    .leftJoin(authUsers, eq(findings.assigneeId, authUsers.id))
+    .where(and(...conditions))
+    .orderBy(desc(findings.severity));
+
+    const results = rawResults.map(r => ({
+      ...r.finding,
+      assignee: r.assignee?.id ? r.assignee : null,
+    }));
 
     return NextResponse.json({ findings: results, runId: targetRunId });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching findings:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

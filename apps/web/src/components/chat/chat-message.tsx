@@ -3,6 +3,17 @@ import { Bot, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 
+function extractTextFromMessage(message: UIMessage): string {
+  const m = message as unknown as Record<string, unknown>;
+  if (Array.isArray(m.parts)) {
+    return m.parts
+      .filter((p: unknown) => typeof p === 'object' && p !== null && (p as Record<string, unknown>).type === 'text')
+      .map((p: unknown) => String((p as Record<string, unknown>).text || ''))
+      .join('');
+  }
+  return typeof m.content === 'string' ? m.content : String(m.content || '');
+}
+
 export function ChatMessage({ message }: { message: UIMessage }) {
   const isUser = message.role === 'user';
 
@@ -29,11 +40,7 @@ export function ChatMessage({ message }: { message: UIMessage }) {
           )}
         >
           <ReactMarkdown>
-            {((message as any).content 
-              ? (message as any).content 
-              : Array.isArray((message as any).parts) 
-                ? (message as any).parts.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('')
-                : '') as string}
+            {extractTextFromMessage(message)}
           </ReactMarkdown>
         </div>
       </div>

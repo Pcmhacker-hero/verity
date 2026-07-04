@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 const WORKSPACE_ID = 'your_workspace_id_here'; // Replace with actual context
 
 export default function BillingPage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleUpgrade = async () => {

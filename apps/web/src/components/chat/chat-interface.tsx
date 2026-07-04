@@ -37,7 +37,7 @@ export function ChatInterface({ projectId, initialMessages = [] }: ChatInterface
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-    sendMessage({ role: 'user', parts: [{ type: 'text', text: input }] } as any);
+    sendMessage({ role: 'user', parts: [{ type: 'text', text: input }] });
     setInput('');
   };
 

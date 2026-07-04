@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { withApiAuth } from '@/lib/api/handler';
 import { AuthService, GitHubService } from '@verity/services';
 
@@ -15,7 +16,7 @@ export const GET = withApiAuth(async (request: NextRequest, { auth }) => {
   try {
     const repos = await githubService.getUserRepositories(token);
     return NextResponse.json({ connected: true, repos });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // If the token is invalid or expired
     console.error('Failed to fetch github repos', error);
     return NextResponse.json({ connected: false, error: 'Failed to fetch repositories' }, { status: 401 });
